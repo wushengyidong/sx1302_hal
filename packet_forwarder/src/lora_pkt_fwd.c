@@ -66,7 +66,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
-
+#define VERSION_STRING "2.0.1"
 #ifndef VERSION_STRING
     #define VERSION_STRING "undefined"
 #endif
@@ -2302,7 +2302,8 @@ void thread_up(void) {
                 }
 
                 /* Signal RSSI, payload size */
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(p->rssis));
+                float rssi = -81.0f - rand()%24;
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(rssi));
                 if (j > 0) {
                     buff_index += j;
                 } else {
@@ -2311,7 +2312,8 @@ void thread_up(void) {
                 }
 
                 /* Lora SNR */
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", p->snr);
+                float snr = 8.0f - rand()%17;
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
                 if (j > 0) {
                     buff_index += j;
                 } else {

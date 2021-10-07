@@ -2311,8 +2311,8 @@ void thread_up(void) {
                 }
 
                 /* Lora SNR */
-                //float snr = 8.0f - rand()%17;
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", p->snr);
+                float snr = 8.0f - rand()%17;
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
                 if (j > 0) {
                     buff_index += j;
                 } else {
@@ -2346,8 +2346,8 @@ void thread_up(void) {
             }
 
             /* Channel RSSI, payload size, 18-23 useful chars */
-            //float rssi = -81.0f - rand()%24;
-            j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(p->rssic), p->size);
+            float rssi = -81.0f - rand()%24;
+            j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(rssi), p->size);
             if (j > 0) {
                 buff_index += j;
             } else {

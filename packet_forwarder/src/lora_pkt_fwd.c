@@ -2302,8 +2302,7 @@ void thread_up(void) {
                 }
 
                 /* Signal RSSI, payload size */
-                float rssi = -81.0f - rand()%24;
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(rssi));
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(p->rssis));
                 if (j > 0) {
                     buff_index += j;
                 } else {
@@ -2347,7 +2346,8 @@ void thread_up(void) {
             }
 
             /* Channel RSSI, payload size, 18-23 useful chars */
-            j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(p->rssic), p->size);
+            float rssi = -81.0f - rand()%24;
+            j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(rssi), p->size);
             if (j > 0) {
                 buff_index += j;
             } else {

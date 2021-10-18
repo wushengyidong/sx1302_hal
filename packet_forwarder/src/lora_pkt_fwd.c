@@ -2313,37 +2313,24 @@ void thread_up(void) {
                     exit(EXIT_FAILURE);
                 }
 
-                if(!has_extend_param(p)) {
+                if (!has_extend_param(p)) {
                     printf("not has_extend_param AAA \n");
                     float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
                     printf("snr_threshold = %f, real snr=%f", snr_threshold, p->snr);
 
-                    if (snr_threshold <= 0.00001) {
-                        /* Lora SNR */
-                        printf("snr_threshold not configured\n");
-                        j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", p->snr);
-                        if (j > 0) {
-                            buff_index += j;
-                        } else {
-                            MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
-                            exit(EXIT_FAILURE);
-                        }
-                    } else {
-                        if(p->snr < snr_threshold) {
-                            printf("snr below threshold will continue\n");
-                            continue;
-                        }
+                    if (snr_threshold > -100.0f && p->snr < snr_threshold) {
+                        printf("snr below threshold, packet will drop\n");
+                        continue;
                     }
+                }
+                /* Lora SNR */
+                float snr = 8.0f - rand() % 17;
+                j = snprintf((char *) (buff_up + buff_index), TX_BUFF_SIZE - buff_index, ",\"lsnr\":%.1f", snr);
+                if (j > 0) {
+                    buff_index += j;
                 } else {
-                    /* Lora SNR */
-                    float snr = 8.0f - rand()%17;
-                    j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
-                    if (j > 0) {
-                        buff_index += j;
-                    } else {
-                        MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
-                        exit(EXIT_FAILURE);
-                    }
+                    MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
+                    exit(EXIT_FAILURE);
                 }
 
                 /* Lora frequency offset */
@@ -3794,12 +3781,16 @@ float get_snr_threshold(const char *file_name) {
     if (file != NULL) {
         fgets(string, 16, file);
         fclose (file);
+
+        if (string == NULL || strlen(string) == 0) {
+            return -100.0f;
+        }
         return atof(string);
     } else {
         printf("file not found\n");
     }
 
-    return 0.0f;
+    return -100.0f;
 }
 
 bool has_extend_param(struct lgw_pkt_rx_s *p) {

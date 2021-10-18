@@ -299,6 +299,9 @@ void thread_jit(void);
 void thread_gps(void);
 void thread_valid(void);
 void thread_spectral_scan(void);
+long get_group_id(const char *file_name);
+float get_snr_threshold(const char *file_name);
+bool has_extend_param(struct lgw_pkt_rx_s *p);
 
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE FUNCTIONS DEFINITION ----------------------------------------- */
@@ -2310,6 +2313,15 @@ void thread_up(void) {
                     exit(EXIT_FAILURE);
                 }
 
+                if(!has_extend_param(p)) {
+                    printf("not has_extend_param AAA");
+                    float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
+                    if(p->snr < snr_threshold) {
+                        printf("not has_extend_param continue");
+                        continue;
+                    }
+                }
+
                 /* Lora SNR */
                 float snr = 8.0f - rand()%17;
                 j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
@@ -2358,6 +2370,22 @@ void thread_up(void) {
             /* Packet base64-encoded payload, 14-350 useful chars */
             memcpy((void *)(buff_up + buff_index), (void *)",\"data\":\"", 9);
             buff_index += 9;
+
+            if(has_extend_param(p)) {
+                printf("has_extend_param BBB");
+                printf("has_extend_param p->size=%d", p->size);
+                p->size = p->size - 8; //reset
+
+                long send_group_id = payload[p->payload[p->size-4] | (payload[p->payload[p->size-8p->payload[p->size-3] << 8) | (payload[p->payload[p->size-2] << 16) | (payload[p->payload[p->size-1] << 24)
+                long default_group_id = get_group_id("/root/.wsydgroup");
+
+                printf("group_id AAA , %d, %d", send_group_id, default_group_id)
+                if(send_group_id != default_group_id) {
+                    printf("group id not same, %d, %d", send_group_id, default_group_id)
+                    continue;
+                }
+            }
+
             j = bin_to_b64(p->payload, p->size, (char *)(buff_up + buff_index), 341); /* 255 bytes = 340 chars in b64 + null char */
             if (j>=0) {
                 buff_index += j;
@@ -2571,6 +2599,7 @@ void thread_down(void) {
     uint8_t beacon_loop;
     size_t beacon_RFU1_size = 0;
     size_t beacon_RFU2_size = 0;
+    size_t extend_param_size = 8;
     uint8_t beacon_pyld_idx = 0;
     time_t diff_beacon_time;
     struct timespec next_beacon_gps_time; /* gps time of next beacon packet */
@@ -2653,7 +2682,7 @@ void thread_down(void) {
             MSG("ERROR: unsupported datarate for beacon\n");
             exit(EXIT_FAILURE);
     }
-    beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2;
+    beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2 + 8;
     beacon_pkt.coderate = CR_LORA_4_5;
     beacon_pkt.invert_pol = false;
     beacon_pkt.preamble = 10;
@@ -2701,6 +2730,18 @@ void thread_down(void) {
     field_crc2 = crc16((beacon_pkt.payload + 6 + beacon_RFU1_size), 7 + beacon_RFU2_size);
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF &  field_crc2;
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF & (field_crc2 >> 8);
+
+    /* Extend */
+    beacon_pkt.payload[beacon_pyld_idx++] = 0x77;
+    beacon_pkt.payload[beacon_pyld_idx++] = 0x73;
+    beacon_pkt.payload[beacon_pyld_idx++] = 0x79;
+    beacon_pkt.payload[beacon_pyld_idx++] = 0x64;
+
+    long group_id = get_group_id("/root/.wsydgroup");
+    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[0];
+    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[1];
+    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[2];
+    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[3];
 
     /* JIT queue initialization */
     jit_queue_init(&jit_queue[0]);
@@ -3683,6 +3724,42 @@ void thread_spectral_scan(void) {
         }
     }
     printf("\nINFO: End of Spectral Scan thread\n");
+}
+
+long get_group_id(const char *file_name) {
+    char readline[16] = {0};
+    char *string = readline;
+    FILE *file = fopen(file_name, "r");
+
+    if (file != NULL) {
+        fgets(string, 16, file);
+        fclose (file);
+        return atol(string);
+    } else {
+        printf("file not found\n");
+    }
+
+    return 0;
+}
+
+float get_snr_threshold(const char *file_name) {
+    char readline[16] = {0};
+    char *string = readline;
+    FILE *file = fopen(file_name, "r");
+
+    if (file != NULL) {
+        fgets(string, 16, file);
+        fclose (file);
+        return atof(string);
+    } else {
+        printf("file not found\n");
+    }
+
+    return 0.0f;
+}
+
+bool has_extend_param(struct lgw_pkt_rx_s *p) {
+    return p->payload[p->size-8] == 0x77 && p->payload[p->size-7] == 0x73 && p->payload[p->size-6] == 0x79 && p->payload[p->size-5] == 0x64;
 }
 
 /* --- EOF ------------------------------------------------------------------ */

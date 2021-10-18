@@ -2379,9 +2379,9 @@ void thread_up(void) {
                 long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
                 long default_group_id = get_group_id("/root/.wsydgroup");
 
-                printf("group_id AAA , %d, %d", send_group_id, default_group_id);
+                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
                 if(send_group_id != default_group_id) {
-                    printf("group id not same, %d, %d", send_group_id, default_group_id);
+                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
                     continue;
                 }
             }
@@ -2682,7 +2682,7 @@ void thread_down(void) {
             MSG("ERROR: unsupported datarate for beacon\n");
             exit(EXIT_FAILURE);
     }
-    beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2 + 8;
+    beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2;
     beacon_pkt.coderate = CR_LORA_4_5;
     beacon_pkt.invert_pol = false;
     beacon_pkt.preamble = 10;
@@ -2731,17 +2731,24 @@ void thread_down(void) {
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF &  field_crc2;
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF & (field_crc2 >> 8);
 
-    /* Extend */
-    beacon_pkt.payload[beacon_pyld_idx++] = 0x77;
-    beacon_pkt.payload[beacon_pyld_idx++] = 0x73;
-    beacon_pkt.payload[beacon_pyld_idx++] = 0x79;
-    beacon_pkt.payload[beacon_pyld_idx++] = 0x64;
+
 
     long group_id = get_group_id("/root/.wsydgroup");
-    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[0];
-    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[1];
-    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[2];
-    beacon_pkt.payload[beacon_pyld_idx++] =  (( uint8_t  *)&group_id)[3];
+    if (group_id != 0) {
+        printf("add extend param AAA");
+        beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2 + extend_param_size;
+        /* Extend */
+        beacon_pkt.payload[beacon_pyld_idx++] = 0x77;
+        beacon_pkt.payload[beacon_pyld_idx++] = 0x73;
+        beacon_pkt.payload[beacon_pyld_idx++] = 0x79;
+        beacon_pkt.payload[beacon_pyld_idx++] = 0x64;
+        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[0];
+        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[1];
+        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[2];
+        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[3];
+    } else {
+        printf("no extend param AAA");
+    }
 
     /* JIT queue initialization */
     jit_queue_init(&jit_queue[0]);

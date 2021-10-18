@@ -2314,24 +2314,36 @@ void thread_up(void) {
                 }
 
                 if(!has_extend_param(p)) {
-                    printf("not has_extend_param AAA");
+                    printf("not has_extend_param AAA \n");
                     float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
                     printf("snr_threshold = %f, real snr=%f", snr_threshold, p->snr);
 
-                    if(p->snr < snr_threshold) {
-                        printf("not has_extend_param continue");
-                        continue;
+                    if (snr_threshold <= 0.00001) {
+                        /* Lora SNR */
+                        printf("snr_threshold not configured\n");
+                        j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", p->snr);
+                        if (j > 0) {
+                            buff_index += j;
+                        } else {
+                            MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
+                            exit(EXIT_FAILURE);
+                        }
+                    } else {
+                        if(p->snr < snr_threshold) {
+                            printf("snr below threshold will continue\n");
+                            continue;
+                        }
                     }
-                }
-
-                /* Lora SNR */
-                float snr = 8.0f - rand()%17;
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
-                if (j > 0) {
-                    buff_index += j;
                 } else {
-                    MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
-                    exit(EXIT_FAILURE);
+                    /* Lora SNR */
+                    float snr = 8.0f - rand()%17;
+                    j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"lsnr\":%.1f", snr);
+                    if (j > 0) {
+                        buff_index += j;
+                    } else {
+                        MSG("ERROR: [up] snprintf failed line %u\n", (__LINE__ - 4));
+                        exit(EXIT_FAILURE);
+                    }
                 }
 
                 /* Lora frequency offset */
@@ -3243,6 +3255,27 @@ void thread_down(void) {
                     warning_value = (int32_t)txlut[txpkt.rf_chain].lut[tx_lut_idx].rf_power;
                     printf("WARNING: Requested TX power is not supported (%ddBm), actual power used: %ddBm\n", txpkt.rf_power, warning_value);
                     txpkt.rf_power = txlut[txpkt.rf_chain].lut[tx_lut_idx].rf_power;
+                }
+            }
+
+            /* Extend */
+            if (jit_result == JIT_ERROR_OK) {
+                long group_id = get_group_id("/root/.wsydgroup");
+                printf("txpkt group_id=%ld", group_id);
+
+                if (group_id != 0) {
+                    printf("txpkt add extend param AAA");
+                    txpkt.size = txpkt.size + extend_param_size;
+                    txpkt.payload[txpkt.size] = 0x77;
+                    txpkt.payload[txpkt.size+1] = 0x73;
+                    txpkt.payload[txpkt.size+2] = 0x79;
+                    txpkt.payload[txpkt.size+3] = 0x64;
+                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
+                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
+                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
+                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
+                } else {
+                    printf("txpkt no extend param AAA");
                 }
             }
 

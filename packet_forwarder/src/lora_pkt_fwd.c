@@ -2379,9 +2379,9 @@ void thread_up(void) {
                 long send_group_id = payload[p->payload[p->size-4] | (payload[p->payload[p->size-8p->payload[p->size-3] << 8) | (payload[p->payload[p->size-2] << 16) | (payload[p->payload[p->size-1] << 24);
                 long default_group_id = get_group_id("/root/.wsydgroup");
 
-                printf("group_id AAA , %d, %d", send_group_id, default_group_id)
+                printf("group_id AAA , %d, %d", send_group_id, default_group_id);
                 if(send_group_id != default_group_id) {
-                    printf("group id not same, %d, %d", send_group_id, default_group_id)
+                    printf("group id not same, %d, %d", send_group_id, default_group_id);
                     continue;
                 }
             }

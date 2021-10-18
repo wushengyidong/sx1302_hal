@@ -2316,6 +2316,8 @@ void thread_up(void) {
                 if(!has_extend_param(p)) {
                     printf("not has_extend_param AAA");
                     float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
+                    printf("snr_threshold = %f, real snr=%f", snr_threshold, p->snr);
+
                     if(p->snr < snr_threshold) {
                         printf("not has_extend_param continue");
                         continue;
@@ -2734,6 +2736,8 @@ void thread_down(void) {
 
 
     long group_id = get_group_id("/root/.wsydgroup");
+    printf("group_id=%ld", group_id);
+
     if (group_id != 0) {
         printf("add extend param AAA");
         beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2 + extend_param_size;

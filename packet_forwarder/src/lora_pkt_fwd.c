@@ -2060,6 +2060,8 @@ void thread_up(void) {
         pkt_in_dgram = 0;
         for (i = 0; i < nb_pkt; ++i) {
 
+            p = &rxpkt[i];
+
             if (!has_extend_param(p)) {
                 printf("not has_extend_param AAA \n");
                 float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
@@ -2084,9 +2086,6 @@ void thread_up(void) {
                     continue;
                 }
             }
-
-            p = &rxpkt[i];
-
             /* Get mote information from current packet (addr, fcnt) */
             /* FHDR - DevAddr */
             if (p->size >= 8) {

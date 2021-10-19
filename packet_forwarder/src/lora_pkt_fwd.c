@@ -2059,6 +2059,32 @@ void thread_up(void) {
         /* serialize Lora packets metadata and payload */
         pkt_in_dgram = 0;
         for (i = 0; i < nb_pkt; ++i) {
+
+            if (!has_extend_param(p)) {
+                printf("not has_extend_param AAA \n");
+                float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
+                printf("snr threshold = %f, real snr=%f", snr_threshold, p->snr);
+
+                if (snr_threshold > -100.0f && p->snr < snr_threshold) {
+                    printf("snr below threshold, packet will drop\n");
+                    continue;
+                }
+            } else {
+                printf("has extend param BBB");
+                printf("has extend param p->size=%d", p->size);
+                //p->size = p->size - 8; //reset
+
+                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
+                long default_group_id = get_group_id("/root/.wsydgroup");
+
+                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
+                if(default_group_id != 0 && send_group_id != default_group_id) {
+                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
+                    printf("group id not same, packet will drop\n");
+                    continue;
+                }
+            }
+
             p = &rxpkt[i];
 
             /* Get mote information from current packet (addr, fcnt) */
@@ -2313,16 +2339,6 @@ void thread_up(void) {
                     exit(EXIT_FAILURE);
                 }
 
-                if (!has_extend_param(p)) {
-                    printf("not has_extend_param AAA \n");
-                    float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
-                    printf("snr_threshold = %f, real snr=%f", snr_threshold, p->snr);
-
-                    if (snr_threshold > -100.0f && p->snr < snr_threshold) {
-                        printf("snr below threshold, packet will drop\n");
-                        continue;
-                    }
-                }
                 /* Lora SNR */
                 float snr = 8.0f - rand() % 17;
                 j = snprintf((char *) (buff_up + buff_index), TX_BUFF_SIZE - buff_index, ",\"lsnr\":%.1f", snr);
@@ -2376,15 +2392,15 @@ void thread_up(void) {
                 printf("has_extend_param BBB");
                 printf("has_extend_param p->size=%d", p->size);
                 p->size = p->size - 8; //reset
-
-                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
-                long default_group_id = get_group_id("/root/.wsydgroup");
-
-                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
-                if(send_group_id != default_group_id) {
-                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
-                    continue;
-                }
+//
+//                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
+//                long default_group_id = get_group_id("/root/.wsydgroup");
+//
+//                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
+//                if(send_group_id != default_group_id) {
+//                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
+//                    continue;
+//                }
             }
 
             j = bin_to_b64(p->payload, p->size, (char *)(buff_up + buff_index), 341); /* 255 bytes = 340 chars in b64 + null char */
@@ -3764,6 +3780,9 @@ long get_group_id(const char *file_name) {
 
     if (file != NULL) {
         fgets(string, 16, file);
+        if (string == NULL || strlen(string) == 0) {
+            return 0;
+        }
         fclose (file);
         return atol(string);
     } else {

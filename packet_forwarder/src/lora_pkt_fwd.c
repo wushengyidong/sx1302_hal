@@ -3262,25 +3262,25 @@ void thread_down(void) {
             }
 
             /* Extend */
-//            if (jit_result == JIT_ERROR_OK) {
-//                long group_id = get_group_id("/root/.wsydgroup");
-//                printf("txpkt group_id=%ld", group_id);
-//
-//                if (group_id != 0) {
-//                    printf("txpkt add extend param AAA");
-//                    txpkt.size = txpkt.size + extend_param_size;
-//                    txpkt.payload[txpkt.size] = 0x77;
-//                    txpkt.payload[txpkt.size+1] = 0x73;
-//                    txpkt.payload[txpkt.size+2] = 0x79;
-//                    txpkt.payload[txpkt.size+3] = 0x64;
-//                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
-//                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
-//                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
-//                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
-//                } else {
-//                    printf("txpkt no extend param AAA");
-//                }
-//            }
+            if (jit_result == JIT_ERROR_OK) {
+                long group_id = get_group_id("/root/.wsydgroup");
+                printf("txpkt group_id=%ld", group_id);
+
+                if (group_id != 0) {
+                    printf("txpkt add extend param AAA");
+                    txpkt.size = txpkt.size + extend_param_size;
+                    txpkt.payload[txpkt.size] = 0x77;
+                    txpkt.payload[txpkt.size+1] = 0x73;
+                    txpkt.payload[txpkt.size+2] = 0x79;
+                    txpkt.payload[txpkt.size+3] = 0x64;
+                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
+                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
+                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
+                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
+                } else {
+                    printf("txpkt no extend param AAA");
+                }
+            }
 
             /* insert packet to be sent into JIT queue */
             if (jit_result == JIT_ERROR_OK) {

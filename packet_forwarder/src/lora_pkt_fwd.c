@@ -302,7 +302,7 @@ void thread_spectral_scan(void);
 long get_group_id(const char *file_name);
 float get_snr_threshold(const char *file_name);
 bool has_extend_param(struct lgw_pkt_rx_s *p);
-
+char * get_group_id_str(const char *file_name);
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE FUNCTIONS DEFINITION ----------------------------------------- */
 
@@ -3216,9 +3216,18 @@ void thread_down(void) {
                 json_value_free(root_val);
                 continue;
             }
-            i = b64_to_bin(str, strlen(str), txpkt.payload, sizeof txpkt.payload);
-            if (i != txpkt.size) {
-                MSG("WARNING: [down] mismatch between .size and .data size once converter to binary\n");
+
+            char *group_id_str = get_group_id_str("/root/.wsydgroup");
+            if (strlen(group_id_str) > 0) {
+                i = b64_to_bin(str, strlen(str), txpkt.payload, sizeof txpkt.payload);
+                if (i != txpkt.size) {
+                    MSG("WARNING: [down] mismatch between .size and .data size once converter to binary\n");
+                }
+            } else {
+                i = b64_to_bin(str, strlen(str), txpkt.payload, sizeof txpkt.payload);
+                if (i != txpkt.size) {
+                    MSG("WARNING: [down] mismatch between .size and .data size once converter to binary\n");
+                }
             }
 
             /* free the JSON parse tree from memory */
@@ -3261,25 +3270,25 @@ void thread_down(void) {
             }
 
             /* Extend */
-            if (jit_result == JIT_ERROR_OK) {
-                long group_id = get_group_id("/root/.wsydgroup");
-                printf("txpkt group_id=%ld", group_id);
-
-                if (group_id != 0) {
-                    printf("txpkt add extend param AAA");
-                    txpkt.size = txpkt.size + extend_param_size;
-                    txpkt.payload[txpkt.size] = 0x77;
-                    txpkt.payload[txpkt.size+1] = 0x73;
-                    txpkt.payload[txpkt.size+2] = 0x79;
-                    txpkt.payload[txpkt.size+3] = 0x64;
-                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
-                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
-                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
-                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
-                } else {
-                    printf("txpkt no extend param AAA");
-                }
-            }
+//            if (jit_result == JIT_ERROR_OK) {
+//                long group_id = get_group_id("/root/.wsydgroup");
+//                printf("txpkt group_id=%ld", group_id);
+//
+//                if (group_id != 0) {
+//                    printf("txpkt add extend param AAA");
+//                    txpkt.size = txpkt.size + extend_param_size;
+//                    txpkt.payload[txpkt.size] = 0x77;
+//                    txpkt.payload[txpkt.size+1] = 0x73;
+//                    txpkt.payload[txpkt.size+2] = 0x79;
+//                    txpkt.payload[txpkt.size+3] = 0x64;
+//                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
+//                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
+//                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
+//                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
+//                } else {
+//                    printf("txpkt no extend param AAA");
+//                }
+//            }
 
             /* insert packet to be sent into JIT queue */
             if (jit_result == JIT_ERROR_OK) {
@@ -3789,6 +3798,36 @@ long get_group_id(const char *file_name) {
     }
 
     return 0;
+}
+
+ {
+    char readline[16] = {0};
+    char *string = readline;
+    char group_id_str[16] = {0};
+    FILE *file = fopen(file_name, "r");
+
+    if (file != NULL) {
+        fgets(string, 16, file);
+        if (string == NULL || strlen(string) == 0) {
+            return "";
+        }
+
+        int len = strlen(string);
+        int i = 7;
+
+        for (int j = len - 1; j >= 0; j--) {
+            group_id_str[i--] = string[j];
+        }
+        for (int j = i; j >=0; j--) {
+            group_id_str[j] = '0';
+        }
+        fclose (file);
+        return group_id_str;
+    } else {
+        printf("file not found\n");
+    }
+
+    return "";
 }
 
 float get_snr_threshold(const char *file_name) {

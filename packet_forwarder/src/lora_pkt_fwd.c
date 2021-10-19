@@ -2074,13 +2074,17 @@ void thread_up(void) {
             } else {
                 printf("has extend param BBB");
                 printf("has extend param p->size=%d", p->size);
-                //p->size = p->size - 8; //reset
-
-                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
+                char *group,*payload;
+                //截取出group
+                split_group(p,group,payload);
+                int realsize = b64_to_bin(payload, strlen(payload), p->payload, 255);
+                p->size=realsize;
+                long group_id=atol(group);
+//                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
                 long default_group_id = get_group_id("/root/.wsydgroup");
 
-                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
-                if(default_group_id != 0 && send_group_id != default_group_id) {
+                printf("group_id AAA , %ld, %ld", group_id, default_group_id);
+                if(default_group_id != 0 && send_group_id != group_id) {
                     printf("group id not same, %ld, %ld", send_group_id, default_group_id);
                     printf("group id not same, packet will drop\n");
                     continue;
@@ -2390,7 +2394,6 @@ void thread_up(void) {
             if(has_extend_param(p)) {
                 printf("has_extend_param BBB");
                 printf("has_extend_param p->size=%d", p->size);
-                p->size = p->size - 8; //reset
 //
 //                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
 //                long default_group_id = get_group_id("/root/.wsydgroup");
@@ -3812,7 +3815,38 @@ float get_snr_threshold(const char *file_name) {
 }
 
 bool has_extend_param(struct lgw_pkt_rx_s *p) {
-    return p->payload[p->size-8] == 0x77 && p->payload[p->size-7] == 0x73 && p->payload[p->size-6] == 0x79 && p->payload[p->size-5] == 0x64;
+//    return p->payload[p->size-8] == 0x77 && p->payload[p->size-7] == 0x73 && p->payload[p->size-6] == 0x79 && p->payload[p->size-5] == 0x64;
+    char *str;
+
+    int j = bin_to_b64(p->payload, p->size, str, 341);
+    char *delim = "WWSSYYDD";
+    int idx = index(str,delim);
+    return idx>0;
+}
+
+void split_group(struct lgw_pkt_rx_s *p,char *group,char *payload) {
+    char *str;
+    int j = bin_to_b64(p->payload, p->size, str, 341);
+    char *delim = "WWSSYYDD";
+    int idx = index(str,delim);
+    if (idx < 0) {
+        return
+    }
+    strncpy(group, str, idx);
+    strncpy(payload, str+idx+8, strlen(str)-idx-8);
+}
+
+int index(char *source,char *child)
+{
+    if(strstr(source,child)==NULL)
+    {
+        return -1;
+    }
+    else
+    {
+       char *tem=strstr(source,child)
+      return (&tem)-&(*source)-1;//
+    }
 }
 
 /* --- EOF ------------------------------------------------------------------ */

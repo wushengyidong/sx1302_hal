@@ -301,8 +301,10 @@ void thread_valid(void);
 void thread_spectral_scan(void);
 long get_group_id(const char *file_name);
 float get_snr_threshold(const char *file_name);
-bool has_extend_param(struct lgw_pkt_rx_s *p);
-char * get_group_id_str(const char *file_name);
+bool has_extend_param(char all_str[]);
+char * get_default_group_id(const char *file_name);
+char * parse_group_id(char str[]);
+char * parse_payload(char str[]);
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE FUNCTIONS DEFINITION ----------------------------------------- */
 
@@ -2062,33 +2064,41 @@ void thread_up(void) {
 
             p = &rxpkt[i];
 
-            if (!has_extend_param(p)) {
-                printf("not has_extend_param AAA \n");
+            char all_str[500];
+            bin_to_b64(p->payload, p->size, all_str, 341);
+
+            if (!has_extend_param(all_str)) {
+                MSG("INFO: not has_extend_param AAA \n");
                 float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
-                printf("snr threshold = %f, real snr=%f", snr_threshold, p->snr);
+                MSG("INFO: snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
 
                 if (snr_threshold > -100.0f && p->snr < snr_threshold) {
-                    printf("snr below threshold, packet will drop\n");
+                    MSG("INFO: snr below threshold, packet will drop\n");
                     continue;
                 }
             } else {
-                printf("has extend param BBB");
-                printf("has extend param p->size=%d", p->size);
-                char *group,*payload;
-                //截取出group
-                split_group(p,group,payload);
-                int realsize = b64_to_bin(payload, strlen(payload), p->payload, 255);
-                p->size=realsize;
-                long group_id=atol(group);
-//                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
-                long default_group_id = get_group_id("/root/.wsydgroup");
+                MSG("INFO: has extend param BBB\n");
+                MSG("INFO: has extend param p->size=%d\n", p->size);
 
-                printf("group_id AAA , %ld, %ld", group_id, default_group_id);
-                if(default_group_id != 0 && send_group_id != group_id) {
-                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
-                    printf("group id not same, packet will drop\n");
+                char *parsed_payload = parse_payload(all_str);
+                int real_size = b64_to_bin(parsed_payload, strlen(parsed_payload), p->payload, 255);
+                MSG("INFO: real size=%d\n", real_size);
+                p->size = real_size;
+
+                char *parsed_group_id = parse_group_id(all_str);
+                char *default_group_id = get_default_group_id("/root/.wsydgroup");
+                if (strlen(default_group_id > 0) && strcmp(parsed_group_id, default_group_id) != 0) {
+                    free(parsed_group_id);
+                    free(default_group_id);
+                    free(parsed_payload);
+
+                    MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
+                    MSG("INFO: group id not same, packet will drop\n");
                     continue;
                 }
+
+                free(parsed_payload);
+                free(parsed_group_id);
             }
             /* Get mote information from current packet (addr, fcnt) */
             /* FHDR - DevAddr */
@@ -2390,20 +2400,6 @@ void thread_up(void) {
             /* Packet base64-encoded payload, 14-350 useful chars */
             memcpy((void *)(buff_up + buff_index), (void *)",\"data\":\"", 9);
             buff_index += 9;
-
-            if(has_extend_param(p)) {
-                printf("has_extend_param BBB");
-                printf("has_extend_param p->size=%d", p->size);
-//
-//                long send_group_id = p->payload[p->size-4] | (p->payload[p->size-3] << 8) | (p->payload[p->size-2] << 16) | (p->payload[p->size-1] << 24);
-//                long default_group_id = get_group_id("/root/.wsydgroup");
-//
-//                printf("group_id AAA , %ld, %ld", send_group_id, default_group_id);
-//                if(send_group_id != default_group_id) {
-//                    printf("group id not same, %ld, %ld", send_group_id, default_group_id);
-//                    continue;
-//                }
-            }
 
             j = bin_to_b64(p->payload, p->size, (char *)(buff_up + buff_index), 341); /* 255 bytes = 340 chars in b64 + null char */
             if (j>=0) {
@@ -2750,27 +2746,6 @@ void thread_down(void) {
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF &  field_crc2;
     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF & (field_crc2 >> 8);
 
-
-
-    long group_id = get_group_id("/root/.wsydgroup");
-    printf("group_id=%ld", group_id);
-
-    if (group_id != 0) {
-        printf("add extend param AAA");
-        beacon_pkt.size = beacon_RFU1_size + 4 + 2 + 7 + beacon_RFU2_size + 2 + extend_param_size;
-        /* Extend */
-        beacon_pkt.payload[beacon_pyld_idx++] = 0x77;
-        beacon_pkt.payload[beacon_pyld_idx++] = 0x73;
-        beacon_pkt.payload[beacon_pyld_idx++] = 0x79;
-        beacon_pkt.payload[beacon_pyld_idx++] = 0x64;
-        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[0];
-        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[1];
-        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[2];
-        beacon_pkt.payload[beacon_pyld_idx++] = ((uint8_t *) &group_id)[3];
-    } else {
-        printf("no extend param AAA");
-    }
-
     /* JIT queue initialization */
     jit_queue_init(&jit_queue[0]);
     jit_queue_init(&jit_queue[1]);
@@ -2868,6 +2843,21 @@ void thread_down(void) {
                     field_crc1 = crc16(beacon_pkt.payload, 4 + beacon_RFU1_size); /* CRC for the network common part */
                     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF & field_crc1;
                     beacon_pkt.payload[beacon_pyld_idx++] = 0xFF & (field_crc1 >> 8);
+
+                    /* Extend parameters */
+                    char *group_id = get_default_group_id("/root/.wsydgroup");
+                    if (strlen(group_id) > 0) {
+                        char tmp_str[300] = {0};
+                        char all_str[500] = {0};
+
+                        bin_to_b64(beacon_pkt.payload, beacon_pkt.size, tmp_str, 341);
+                        sprintf(all_str, "%sWWSSYYDD%s", group_id, tmp_str);
+
+                        int j = b64_to_bin(all_str, strlen(all_str), beacon_pkt.payload, sizeof beacon_pkt.payload);
+                        MSG("INFO: AAA, all_str=%s, j=%d, beacon_pkt.size=%d", all_str, j, beacon_pkt.size);
+                        beacon_pkt.size = j;
+                        free(group_id);
+                    }
 
                     /* Insert beacon packet in JiT queue */
                     pthread_mutex_lock(&mx_concent);
@@ -3220,12 +3210,16 @@ void thread_down(void) {
                 continue;
             }
 
-            char *group_id_str = get_group_id_str("/root/.wsydgroup");
-            if (strlen(group_id_str) > 0) {
-                i = b64_to_bin(str, strlen(str), txpkt.payload, sizeof txpkt.payload);
-                if (i != txpkt.size) {
-                    MSG("WARNING: [down] mismatch between .size and .data size once converter to binary\n");
-                }
+            /* Extend parameters */
+            char *group_id = get_default_group_id("/root/.wsydgroup");
+            if (strlen(group_id) > 0) {
+                char src[300] = {0};
+
+                sprintf(src, "%sWWSSYYDD%s", group_id, str);
+                i = b64_to_bin(src, strlen(src), txpkt.payload, sizeof txpkt.payload);
+                MSG("INFO: AAA, src=%s, i=%d, txpkt.size=%d", src, i, txpkt.size);
+                txpkt.size = i;
+                free(group_id);
             } else {
                 i = b64_to_bin(str, strlen(str), txpkt.payload, sizeof txpkt.payload);
                 if (i != txpkt.size) {
@@ -3803,10 +3797,10 @@ long get_group_id(const char *file_name) {
     return 0;
 }
 
- {
+char * get_default_group_id(const char *file_name) {
     char readline[16] = {0};
     char *string = readline;
-    char group_id_str[16] = {0};
+    char *group_id_str = (char *)malloc(16 * sizeof(char));
     FILE *file = fopen(file_name, "r");
 
     if (file != NULL) {
@@ -3853,39 +3847,25 @@ float get_snr_threshold(const char *file_name) {
     return -100.0f;
 }
 
-bool has_extend_param(struct lgw_pkt_rx_s *p) {
-//    return p->payload[p->size-8] == 0x77 && p->payload[p->size-7] == 0x73 && p->payload[p->size-6] == 0x79 && p->payload[p->size-5] == 0x64;
-    char *str;
-
-    int j = bin_to_b64(p->payload, p->size, str, 341);
+bool has_extend_param(char str[]) {
     char *delim = "WWSSYYDD";
-    int idx = index(str,delim);
-    return idx>0;
+
+    return strstr(str, delim);
 }
 
-void split_group(struct lgw_pkt_rx_s *p,char *group,char *payload) {
-    char *str;
-    int j = bin_to_b64(p->payload, p->size, str, 341);
-    char *delim = "WWSSYYDD";
-    int idx = index(str,delim);
-    if (idx < 0) {
-        return
-    }
-    strncpy(group, str, idx);
-    strncpy(payload, str+idx+8, strlen(str)-idx-8);
+char * parse_group_id(char str[]) {
+    char *dest = (char *)malloc(8 * sizeof(char));
+    strncpy(dest, str, 8);
+
+    return dest;
 }
 
-int index(char *source,char *child)
-{
-    if(strstr(source,child)==NULL)
-    {
-        return -1;
-    }
-    else
-    {
-       char *tem=strstr(source,child)
-      return (&tem)-&(*source)-1;//
-    }
+char * parse_payload(char str[]) {
+    char *dest = (char *)malloc(300 * sizeof(char));
+
+    strncpy(dest, str+16, strlen(str)-16);
+
+    return dest;
 }
 
 /* --- EOF ------------------------------------------------------------------ */

@@ -2088,12 +2088,13 @@ void thread_up(void) {
                 char *parsed_group_id = parse_group_id(all_str);
                 char *default_group_id = get_default_group_id("/root/.wsydgroup");
                 if (strlen(default_group_id) > 0 && strcmp(parsed_group_id, default_group_id) != 0) {
+                    MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
+                    MSG("INFO: group id not same, packet will drop\n");
+
                     free(parsed_group_id);
                     free(default_group_id);
                     free(parsed_payload);
 
-                    MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
-                    MSG("INFO: group id not same, packet will drop\n");
                     continue;
                 }
 

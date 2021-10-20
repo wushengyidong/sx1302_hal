@@ -2087,7 +2087,7 @@ void thread_up(void) {
 
                 char *parsed_group_id = parse_group_id(all_str);
                 char *default_group_id = get_default_group_id("/root/.wsydgroup");
-                if (strlen(default_group_id > 0) && strcmp(parsed_group_id, default_group_id) != 0) {
+                if (strlen(default_group_id) > 0 && strcmp(parsed_group_id, default_group_id) != 0) {
                     free(parsed_group_id);
                     free(default_group_id);
                     free(parsed_payload);

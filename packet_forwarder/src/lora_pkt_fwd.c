@@ -299,12 +299,13 @@ void thread_jit(void);
 void thread_gps(void);
 void thread_valid(void);
 void thread_spectral_scan(void);
-long get_group_id(const char *file_name);
+
 float get_snr_threshold(const char *file_name);
 bool has_extend_param(char all_str[]);
 char * get_default_group_id(const char *file_name);
 char * parse_group_id(char str[]);
 char * parse_payload(char str[]);
+
 /* -------------------------------------------------------------------------- */
 /* --- PRIVATE FUNCTIONS DEFINITION ----------------------------------------- */
 
@@ -2068,7 +2069,7 @@ void thread_up(void) {
             bin_to_b64(p->payload, p->size, all_str, 341);
 
             if (!has_extend_param(all_str)) {
-                MSG("INFO: not has_extend_param AAA \n");
+                MSG("INFO: not has extend param \n");
                 float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
                 MSG("INFO: snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
 
@@ -2077,7 +2078,6 @@ void thread_up(void) {
                     continue;
                 }
             } else {
-                MSG("INFO: has extend param BBB\n");
                 MSG("INFO: has extend param p->size=%d\n", p->size);
 
                 char *parsed_payload = parse_payload(all_str);
@@ -3266,27 +3266,6 @@ void thread_down(void) {
                 }
             }
 
-            /* Extend */
-//            if (jit_result == JIT_ERROR_OK) {
-//                long group_id = get_group_id("/root/.wsydgroup");
-//                printf("txpkt group_id=%ld", group_id);
-//
-//                if (group_id != 0) {
-//                    printf("txpkt add extend param AAA");
-//                    txpkt.size = txpkt.size + extend_param_size;
-//                    txpkt.payload[txpkt.size] = 0x77;
-//                    txpkt.payload[txpkt.size+1] = 0x73;
-//                    txpkt.payload[txpkt.size+2] = 0x79;
-//                    txpkt.payload[txpkt.size+3] = 0x64;
-//                    txpkt.payload[txpkt.size+4] = ((uint8_t *) &group_id)[0];
-//                    txpkt.payload[txpkt.size+5] = ((uint8_t *) &group_id)[1];
-//                    txpkt.payload[txpkt.size+6] = ((uint8_t *) &group_id)[2];
-//                    txpkt.payload[txpkt.size+7] = ((uint8_t *) &group_id)[3];
-//                } else {
-//                    printf("txpkt no extend param AAA");
-//                }
-//            }
-
             /* insert packet to be sent into JIT queue */
             if (jit_result == JIT_ERROR_OK) {
                 pthread_mutex_lock(&mx_concent);
@@ -3776,25 +3755,6 @@ void thread_spectral_scan(void) {
         }
     }
     printf("\nINFO: End of Spectral Scan thread\n");
-}
-
-long get_group_id(const char *file_name) {
-    char readline[16] = {0};
-    char *string = readline;
-    FILE *file = fopen(file_name, "r");
-
-    if (file != NULL) {
-        fgets(string, 16, file);
-        if (string == NULL || strlen(string) == 0) {
-            return 0;
-        }
-        fclose (file);
-        return atol(string);
-    } else {
-        printf("file not found\n");
-    }
-
-    return 0;
 }
 
 char * get_default_group_id(const char *file_name) {

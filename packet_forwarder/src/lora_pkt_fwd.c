@@ -2068,8 +2068,17 @@ void thread_up(void) {
             char all_str[500];
             bin_to_b64(p->payload, p->size, all_str, 341);
 
+            char *default_group_id = get_default_group_id("/root/.wsydgroup");
+
             if (!has_extend_param(all_str)) {
                 MSG("INFO: not has extend param \n");
+
+                if (strlen(default_group_id) > 0) {
+                    MSG("INFO: not has extend param but has group id, packet will drop\n");
+                    free(default_group_id);
+                    continue;
+                }
+
                 float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
                 MSG("INFO: snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
 
@@ -2086,7 +2095,6 @@ void thread_up(void) {
                 p->size = real_size;
 
                 char *parsed_group_id = parse_group_id(all_str);
-                char *default_group_id = get_default_group_id("/root/.wsydgroup");
                 if (strlen(default_group_id) > 0 && strcmp(parsed_group_id, default_group_id) != 0) {
                     MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
                     MSG("INFO: group id not same, packet will drop\n");
@@ -2096,8 +2104,21 @@ void thread_up(void) {
                     free(parsed_payload);
 
                     continue;
+                } else if (strlen(default_group_id) == 0) {
+                     float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
+                     MSG("INFO: has extend param bu no  wsydgroup snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
+
+                     if (snr_threshold > -100.0f && p->snr < snr_threshold) {
+                        free(parsed_group_id);
+                        free(parsed_payload);
+                        MSG("INFO: has extend param bu no  wsydgroup  snr below threshold, packet will drop\n");
+                        continue;
+                     }
                 }
 
+                if (strlen(default_group_id) > 0) {
+                      free(default_group_id);
+                }
                 free(parsed_payload);
                 free(parsed_group_id);
             }

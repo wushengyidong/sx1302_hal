@@ -2410,7 +2410,7 @@ void thread_up(void) {
             }
 
             /* Channel RSSI, payload size, 18-23 useful chars */
-            float rssi = -81.0f - rand()%24;
+            float rssi = -98.0f - rand()%11;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(rssi), p->size);
             if (j > 0) {
                 buff_index += j;
@@ -3788,6 +3788,7 @@ char * get_default_group_id(const char *file_name) {
     if (file != NULL) {
         fgets(string, 16, file);
         if (string == NULL || strlen(string) == 0) {
+            fclose (file);
             return "";
         }
 

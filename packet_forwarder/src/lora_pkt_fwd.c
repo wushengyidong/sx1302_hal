@@ -2366,7 +2366,8 @@ void thread_up(void) {
                 }
 
                 /* Signal RSSI, payload size */
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(p->rssis));
+                float rssis = -98.0f - rand()%11;
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(rssis));
                 if (j > 0) {
                     buff_index += j;
                 } else {

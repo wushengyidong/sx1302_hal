@@ -2071,33 +2071,33 @@ void thread_up(void) {
             char *default_group_id = get_default_group_id("/root/.wsydgroup");
 
             if (!has_extend_param(all_str)) {
-                MSG("INFO: not has extend param \n");
+                //MSG("INFO: not has extend param \n");
 
                 if (strlen(default_group_id) > 0) {
-                    MSG("INFO: not has extend param but has group id, packet will drop\n");
+                    //MSG("INFO: not has extend param but has group id, packet will drop\n");
                     free(default_group_id);
                     continue;
                 }
 
                 float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
-                MSG("INFO: snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
+                //MSG("INFO: snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
 
                 if (snr_threshold > -100.0f && p->snr < snr_threshold) {
-                    MSG("INFO: snr below threshold, packet will drop\n");
+                    //MSG("INFO: snr below threshold, packet will drop\n");
                     continue;
                 }
             } else {
-                MSG("INFO: has extend param p->size=%d\n", p->size);
+                //MSG("INFO: has extend param p->size=%d\n", p->size);
 
                 char *parsed_payload = parse_payload(all_str);
                 int real_size = b64_to_bin(parsed_payload, strlen(parsed_payload), p->payload, 255);
-                MSG("INFO: real size=%d\n", real_size);
+                //MSG("INFO: real size=%d\n", real_size);
                 p->size = real_size;
 
                 char *parsed_group_id = parse_group_id(all_str);
                 if (strlen(default_group_id) > 0 && strcmp(parsed_group_id, default_group_id) != 0) {
-                    MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
-                    MSG("INFO: group id not same, packet will drop\n");
+                    //MSG("INFO: group id not same, %s, %s\n", parsed_group_id, default_group_id);
+                    //MSG("INFO: group id not same, packet will drop\n");
 
                     free(parsed_group_id);
                     free(default_group_id);
@@ -2106,12 +2106,12 @@ void thread_up(void) {
                     continue;
                 } else if (strlen(default_group_id) == 0) {
                      float snr_threshold = get_snr_threshold("/root/.wsydthreshold");
-                     MSG("INFO: has extend param bu no  wsydgroup snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
+                     //MSG("INFO: has extend param bu no  wsydgroup snr threshold = %f, real snr=%f\n", snr_threshold, p->snr);
 
                      if (snr_threshold > -100.0f && p->snr < snr_threshold) {
                         free(parsed_group_id);
                         free(parsed_payload);
-                        MSG("INFO: has extend param bu no  wsydgroup  snr below threshold, packet will drop\n");
+                        //MSG("INFO: has extend param bu no  wsydgroup  snr below threshold, packet will drop\n");
                         continue;
                      }
                 }
@@ -2272,6 +2272,7 @@ void thread_up(void) {
             }
 
             /* Packet modulation, 13-14 useful chars */
+            float rssi = -98.0f - rand()%11;
             if (p->modulation == MOD_LORA) {
                 memcpy((void *)(buff_up + buff_index), (void *)",\"modu\":\"LORA\"", 14);
                 buff_index += 14;
@@ -2366,8 +2367,7 @@ void thread_up(void) {
                 }
 
                 /* Signal RSSI, payload size */
-                float rssis = -98.0f - rand()%11;
-                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(rssis));
+                j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssis\":%.0f", roundf(rssi));
                 if (j > 0) {
                     buff_index += j;
                 } else {
@@ -2411,7 +2411,6 @@ void thread_up(void) {
             }
 
             /* Channel RSSI, payload size, 18-23 useful chars */
-            float rssi = -98.0f - rand()%11;
             j = snprintf((char *)(buff_up + buff_index), TX_BUFF_SIZE-buff_index, ",\"rssi\":%.0f,\"size\":%u", roundf(rssi), p->size);
             if (j > 0) {
                 buff_index += j;
@@ -3805,7 +3804,7 @@ char * get_default_group_id(const char *file_name) {
         fclose (file);
         return group_id_str;
     } else {
-        printf("file not found\n");
+        //printf("file not found\n");
     }
 
     return "";
@@ -3825,7 +3824,7 @@ float get_snr_threshold(const char *file_name) {
         }
         return atof(string);
     } else {
-        printf("file not found\n");
+        //printf("file not found\n");
     }
 
     return -100.0f;

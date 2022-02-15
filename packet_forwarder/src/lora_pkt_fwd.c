@@ -2376,7 +2376,7 @@ void thread_up(void) {
                 }
 
                 /* Lora SNR */
-                float snr = 8.0f - rand() % 17;
+                float snr = rand()/ (float )(RAND_MAX/-11);
                 j = snprintf((char *) (buff_up + buff_index), TX_BUFF_SIZE - buff_index, ",\"lsnr\":%.1f", snr);
                 if (j > 0) {
                     buff_index += j;
